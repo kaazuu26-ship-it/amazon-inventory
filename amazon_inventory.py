@@ -87,33 +87,33 @@ def export_store_data(driver, store_name):
         # ページ読み込み完了を待つ
         time.sleep(5)
 
-        # FBA在庫管理をクリック（左サイドバー）
+        # FBA在庫管理をクリック
         fba_menu = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, "//*[contains(., 'FBA在庫管理')]"))
+            EC.element_to_be_clickable((By.XPATH, "//*[text()='FBA在庫管理']"))
         )
         fba_menu.click()
-        time.sleep(3)
+        time.sleep(5)
 
-        # Japan ドロップダウンをクリック
-        japan_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Japan')]"))
+        # Japan をクリック
+        japan_button = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, "//*[text()='Japan']"))
         )
         japan_button.click()
-        time.sleep(2)
+        time.sleep(3)
 
         # 店舗を選択
-        store_link = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f"//*[contains(text(), '{store_name}')]"))
+        store_link = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, f"//*[text()='{store_name}']"))
         )
         store_link.click()
         time.sleep(3)
 
-        # エクスポートボタン（ダウンロードアイコン）をクリック
-        export_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[.//svg[@class or @data-testid]][contains(@title, 'download') or contains(@class, 'export')]"))
+        # エクスポートボタンをクリック
+        export_button = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, "//svg[contains(@class, 'download') or contains(@class, 'export')]/parent::button"))
         )
         export_button.click()
-        print(f"✅ {store_name} のエクスポートリクエスト完了")
+        print(f"✅ {store_name} のエクスポート完了")
         time.sleep(2)
 
     except Exception as e:
