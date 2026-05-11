@@ -70,7 +70,11 @@ def login_tool4seller():
         submit_button = driver.find_element(By.XPATH, "//button[@type='submit']")
         submit_button.click()
 
-        time.sleep(5)
+        # FBA在庫管理ページへのリダイレクト完了を待つ
+        WebDriverWait(driver, 15).until(
+            lambda d: 'fbaInventoryList' in d.current_url and 'landing' not in d.current_url
+        )
+        time.sleep(2)
         print("✅ ログイン成功")
         return driver
     except Exception as e:
