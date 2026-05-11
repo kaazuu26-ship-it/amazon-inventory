@@ -1,8 +1,13 @@
 import os
+import sys
 import time
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
+
+# UTF-8 エンコーディング設定
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -43,7 +48,12 @@ def login_seller_central():
     print("🔓 Seller Central ログイン中...")
 
     service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service)
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    driver = webdriver.Chrome(service=service, options=options)
     driver.get('https://sellercentral.amazon.co.jp/')
 
     try:
