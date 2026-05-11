@@ -56,30 +56,45 @@ def login_tool4seller():
 
     try:
         driver.get('https://data.tool4seller.com/sales_analysis/stock?currentTab=0')
+        print(f"ページロード完了。URL: {driver.current_url}")
         time.sleep(3)
 
-        email_field = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "login-email"))
-        )
+        try:
+            email_field = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "login-email"))
+            )
+            print("✓ Email フィールド発見")
+        except Exception as e:
+            print(f"✗ Email フィールド発見失敗: {e}")
+            print(f"ページタイトル: {driver.title}")
+            raise
+
         email_field.clear()
         email_field.send_keys(TOOL4SELLER_EMAIL)
+        print(f"✓ Email 入力完了: {TOOL4SELLER_EMAIL}")
         time.sleep(1)
 
         password_field = driver.find_element(By.ID, "login-password")
         password_field.clear()
         password_field.send_keys(TOOL4SELLER_PASSWORD)
+        print("✓ Password 入力完了")
         time.sleep(1)
 
         submit_button = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//button[@type='submit' and contains(text(), 'ログイン')]"))
         )
+        print("✓ Submit ボタン発見")
         submit_button.click()
+        print("✓ Submit ボタンクリック")
 
         time.sleep(5)
+        print(f"ログイン後URL: {driver.current_url}")
         print("✅ ログイン成功")
         return driver
     except Exception as e:
         print(f"❌ ログイン失敗: {e}")
+        print(f"現在のURL: {driver.current_url}")
+        print(f"ページタイトル: {driver.title}")
         driver.quit()
         return None
 
