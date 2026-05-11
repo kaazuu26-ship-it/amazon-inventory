@@ -87,30 +87,50 @@ def export_store_data(driver, store_name):
         # ページ読み込み完了を待つ
         time.sleep(5)
 
-        # FBA在庫管理をクリック
-        fba_menu = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, "//*[text()='FBA在庫管理']"))
-        )
-        fba_menu.click()
+        # FBA在庫管理をクリック（複数のセレクターを試す）
+        fba_clicked = False
+        fba_selectors = [
+            "//*[text()='FBA在庫管理']",
+            "//li[contains(text(), 'FBA在庫管理')]",
+            "//a[contains(text(), 'FBA在庫管理')]",
+            "//div[contains(text(), 'FBA在庫管理')]",
+            "//*[contains(., 'FBA在庫管理')]"
+        ]
+
+        for selector in fba_selectors:
+            try:
+                fba_menu = WebDriverWait(driver, 5).until(
+                    EC.element_to_be_clickable((By.XPATH, selector))
+                )
+                fba_menu.click()
+                fba_clicked = True
+                print(f"✓ FBA在庫管理クリック成功（セレクター: {selector}）")
+                break
+            except:
+                continue
+
+        if not fba_clicked:
+            raise Exception("FBA在庫管理が見つかりません")
+
         time.sleep(5)
 
         # Japan をクリック
         japan_button = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, "//*[text()='Japan']"))
+            EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Japan')]"))
         )
         japan_button.click()
         time.sleep(3)
 
         # 店舗を選択
         store_link = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, f"//*[text()='{store_name}']"))
+            EC.element_to_be_clickable((By.XPATH, f"//*[contains(text(), '{store_name}')]"))
         )
         store_link.click()
         time.sleep(3)
 
         # エクスポートボタンをクリック
         export_button = WebDriverWait(driver, 15).until(
-            EC.element_to_be_clickable((By.XPATH, "//svg[contains(@class, 'download') or contains(@class, 'export')]/parent::button"))
+            EC.element_to_be_clickable((By.XPATH, "//svg[contains(@class, 'download')]/parent::button | //button[.//svg]"))
         )
         export_button.click()
         print(f"✅ {store_name} のエクスポート完了")
