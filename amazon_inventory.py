@@ -2,6 +2,7 @@ import os
 import sys
 import csv
 import time
+import glob
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
@@ -38,8 +39,6 @@ required_vars = {
 missing_vars = [key for key, value in required_vars.items() if not value]
 if missing_vars:
     print(f"❌ エラー: 以下の環境変数が設定されていません: {', '.join(missing_vars)}")
-    print("💡 ローカル実行: .env ファイルを確認してください")
-    print("☁️  リモート実行: 環境変数を設定してください")
     exit(1)
 
 def login_tool4seller():
@@ -56,73 +55,110 @@ def login_tool4seller():
 
     try:
         driver.get('https://data.tool4seller.com/sales_analysis/stock?currentTab=0')
-        print(f"ページロード完了。URL: {driver.current_url}")
         time.sleep(3)
 
-        try:
-            email_field = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "login-email"))
-            )
-            print("✓ Email フィールド発見")
-        except Exception as e:
-            print(f"✗ Email フィールド発見失敗: {e}")
-            print(f"ページタイトル: {driver.title}")
-            raise
-
-        email_field.clear()
+        email_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "login-email"))
+        )
         email_field.send_keys(TOOL4SELLER_EMAIL)
-        print(f"✓ Email 入力完了: {TOOL4SELLER_EMAIL}")
         time.sleep(1)
 
         password_field = driver.find_element(By.ID, "login-password")
-        password_field.clear()
         password_field.send_keys(TOOL4SELLER_PASSWORD)
-        print("✓ Password 入力完了")
         time.sleep(1)
 
-        submit_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//button[@type='submit' and contains(text(), 'ログイン')]"))
-        )
-        print("✓ Submit ボタン発見")
+        submit_button = driver.find_element(By.XPATH, "//button[@type='submit']")
         submit_button.click()
-        print("✓ Submit ボタンクリック")
 
         time.sleep(5)
-        print(f"ログイン後URL: {driver.current_url}")
         print("✅ ログイン成功")
         return driver
     except Exception as e:
         print(f"❌ ログイン失敗: {e}")
-        print(f"現在のURL: {driver.current_url}")
-        print(f"ページタイトル: {driver.title}")
         driver.quit()
         return None
 
-def download_csv_from_tool4seller(driver, download_dir):
-    """Tool4Seller から在庫 CSV をダウンロード"""
-    print("📥 在庫データ取得中...")
+def export_store_data(driver, store_name):
+    """指定した店舗のデータをエクスポート"""
+    print(f"📤 {store_name} のデータをエクスポート中...")
 
     try:
-        download_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'download')] | //a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'csv')]"))
+        # FBA在庫管理をクリック（左サイドバー）
+        fba_menu = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(text(), 'FBA在庫管理')]"))
         )
-        download_button.click()
+        fba_menu.click()
+        time.sleep(2)
 
+        # Japan ドロップダウンをクリック
+        japan_button = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Japan')]"))
+        )
+        japan_button.click()
+        time.sleep(2)
+
+        # 店舗を選択
+        store_link = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, f"//text()[contains(., '{store_name}')]"))
+        )
+        store_link.click()
         time.sleep(3)
-        print("✅ データ取得成功")
-        return True
+
+        # エクスポートボタン（ダウンロードアイコン）をクリック
+        export_button = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//button[.//svg][@title='ダウンロード'] | //button[.//svg][contains(@class, 'download')]"))
+        )
+        export_button.click()
+        print(f"✅ {store_name} のエクスポートリクエスト完了")
+        time.sleep(2)
+
     except Exception as e:
-        print(f"❌ データ取得失敗: {e}")
+        print(f"❌ {store_name} のエクスポート失敗: {e}")
         return False
 
-def get_latest_csv(download_dir):
-    """最新のダウンロードファイルを取得"""
-    import glob
-    files = glob.glob(os.path.join(download_dir, '*.csv'))
-    if files:
-        latest_file = max(files, key=os.path.getctime)
-        return latest_file
-    return None
+    return True
+
+def download_csv_files(driver):
+    """ダウンロードセンターから CSV ファイルをダウンロード"""
+    print("📥 ダウンロードセンターにアクセス中...")
+
+    try:
+        # ダウンロードセンターアイコンをクリック
+        download_center = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//text()[contains(., 'ダウンロードセンター')] | //a[contains(@href, 'download')]"))
+        )
+        download_center.click()
+        time.sleep(3)
+
+        # 2つのダウンロードボタンをクリック
+        download_buttons = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.XPATH, "//button[contains(text(), 'ダウンロード')]"))
+        )
+
+        for idx, button in enumerate(download_buttons[:2]):  # 最初の2つだけ
+            try:
+                button.click()
+                print(f"✅ CSV {idx + 1} ダウンロード開始")
+                time.sleep(2)
+            except:
+                pass
+
+        time.sleep(3)
+        print("✅ CSV ダウンロード完了")
+        return True
+
+    except Exception as e:
+        print(f"❌ ダウンロード失敗: {e}")
+        return False
+
+def get_latest_csvs(download_dir, count=2):
+    """最新のCSVファイルを取得"""
+    files = sorted(
+        glob.glob(os.path.join(download_dir, '*.csv')),
+        key=os.path.getctime,
+        reverse=True
+    )[:count]
+    return files
 
 def update_google_sheets(inventory_data):
     """Google Sheets に在庫データを記載"""
@@ -150,11 +186,11 @@ def update_google_sheets(inventory_data):
 
         updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        for idx, item in enumerate(inventory_data[:20], start=2):
+        for idx, item in enumerate(inventory_data[:50], start=2):
             values = [[
-                item.get('SKU', '') or item.get('商品', '') or item.get('Variation Code', ''),
+                item.get('SKU', '') or item.get('商品', ''),
                 item.get('ASIN', ''),
-                item.get('在庫', '') or item.get('FBA在庫', '') or item.get('在库', ''),
+                item.get('在庫', '') or item.get('FBA在庫', ''),
                 updated_at
             ]]
 
@@ -196,25 +232,38 @@ def main():
         return
 
     try:
-        download_csv_from_tool4seller(driver, os.path.expanduser('~\\Downloads'))
+        # 2つの店舗のデータをエクスポート
+        export_store_data(driver, "relief10")
+        time.sleep(5)
+        export_store_data(driver, "ReLaravel 公式ストア")
+        time.sleep(10)  # CSV 準備待ち
 
+        # CSV をダウンロード
+        download_csv_files(driver)
+
+        # ダウンロードした CSV を読み込み
         download_dir = os.path.expanduser('~\\Downloads')
-        csv_file = get_latest_csv(download_dir)
+        csv_files = get_latest_csvs(download_dir, count=2)
 
-        if csv_file:
-            inventory_data = []
-            with open(csv_file, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    inventory_data.append(row)
+        all_inventory_data = []
+        for csv_file in csv_files:
+            try:
+                with open(csv_file, 'r', encoding='utf-8') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        all_inventory_data.append(row)
+                print(f"✓ {csv_file} 読み込み完了")
+            except Exception as e:
+                print(f"✗ {csv_file} 読み込み失敗: {e}")
 
-            update_google_sheets(inventory_data)
+        if all_inventory_data:
+            update_google_sheets(all_inventory_data)
 
             message = f"""
 [toall] 🔔 Amazon 在庫更新完了
 
 更新時刻: {updated_at}
-更新件数: {len(inventory_data)}
+更新件数: {len(all_inventory_data)}
 
 詳細はスプレッドシートをご確認ください。
             """.strip()
