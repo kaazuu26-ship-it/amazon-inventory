@@ -14,13 +14,29 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
-load_dotenv()
+load_dotenv(override=False)
 
 SELLER_EMAIL = os.getenv('SELLER_CENTRAL_EMAIL')
 SELLER_PASSWORD = os.getenv('SELLER_CENTRAL_PASSWORD')
 GOOGLE_SHEETS_ID = os.getenv('GOOGLE_SHEETS_ID')
 CHATWORK_API_KEY = os.getenv('CHATWORK_API_KEY')
 CHATWORK_ROOM_ID = os.getenv('CHATWORK_ROOM_ID')
+
+# 必要な環境変数をチェック
+required_vars = {
+    'SELLER_CENTRAL_EMAIL': SELLER_EMAIL,
+    'SELLER_CENTRAL_PASSWORD': SELLER_PASSWORD,
+    'GOOGLE_SHEETS_ID': GOOGLE_SHEETS_ID,
+    'CHATWORK_API_KEY': CHATWORK_API_KEY,
+    'CHATWORK_ROOM_ID': CHATWORK_ROOM_ID,
+}
+
+missing_vars = [key for key, value in required_vars.items() if not value]
+if missing_vars:
+    print(f"❌ エラー: 以下の環境変数が設定されていません: {', '.join(missing_vars)}")
+    print("💡 ローカル実行: .env ファイルを確認してください")
+    print("☁️  リモート実行: 環境変数を設定してください")
+    exit(1)
 
 def login_seller_central():
     """Seller Central にログイン"""
