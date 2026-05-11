@@ -71,14 +71,20 @@ def login_tool4seller():
         submit_button = driver.find_element(By.XPATH, "//button[@type='submit']")
         submit_button.click()
 
-        # ランディングページからのリダイレクト完了を待つ（最大30秒）
-        start_time = time.time()
-        while time.time() - start_time < 30:
-            if 'landing' not in driver.current_url:
-                print(f"✅ リダイレクト完了: {driver.current_url}")
-                time.sleep(2)
-                break
-            time.sleep(1)
+        # ランディングページからのリダイレクトを待つ/トリガーする
+        time.sleep(5)
+
+        # JavaScriptでリダイレクトをトリガー（URLパラメータから取得）
+        driver.execute_script("""
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get('redirect');
+        if (redirect) {
+            window.location.href = redirect;
+        }
+        """)
+
+        time.sleep(5)
+        print(f"リダイレクト後URL: {driver.current_url}")
 
         print("✅ ログイン成功")
         return driver
