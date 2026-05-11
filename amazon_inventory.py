@@ -83,9 +83,19 @@ def export_store_data(driver, store_name):
     print(f"📤 {store_name} のデータをエクスポート中...")
 
     try:
-        # Japan ドロップダウンをクリック
+        time.sleep(2)
+
+        # Japanボタンを見つけるため、JavaScriptで調査
+        japan_elements = driver.execute_script("""
+        return Array.from(document.querySelectorAll('button, div[role="button"], select'))
+            .filter(el => el.textContent.includes('Japan'))
+            .map(el => ({tag: el.tagName, text: el.textContent.substring(0, 30), class: el.className}));
+        """)
+        print(f"見つかったJapan要素: {japan_elements}")
+
+        # Japanボタンをクリック
         japan_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Japan')]"))
+            EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Japan')]"))
         )
         japan_button.click()
         time.sleep(2)
