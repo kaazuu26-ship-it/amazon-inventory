@@ -55,7 +55,7 @@ def login_tool4seller():
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        driver.get('https://data.tool4seller.com/productManage/fbaInventoryList')
+        driver.get('https://data.tool4seller.com/sales_analysis/stock?currentTab=0')
         time.sleep(3)
 
         email_field = WebDriverWait(driver, 10).until(
@@ -71,21 +71,7 @@ def login_tool4seller():
         submit_button = driver.find_element(By.XPATH, "//button[@type='submit']")
         submit_button.click()
 
-        # ランディングページからのリダイレクトを待つ/トリガーする
-        time.sleep(5)
-
-        # JavaScriptでリダイレクトをトリガー（URLパラメータから取得）
-        driver.execute_script("""
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirect = urlParams.get('redirect');
-        if (redirect) {
-            window.location.href = redirect;
-        }
-        """)
-
-        time.sleep(5)
-        print(f"リダイレクト後URL: {driver.current_url}")
-
+        time.sleep(10)
         print("✅ ログイン成功")
         return driver
     except Exception as e:
@@ -98,45 +84,30 @@ def export_store_data(driver, store_name):
     print(f"📤 {store_name} のデータをエクスポート中...")
 
     try:
+        # FBA在庫管理をクリック（左サイドバー）
+        fba_menu = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//li[.//text()[contains(., 'FBA在庫管理')]] | //a[contains(text(), 'FBA在庫管理')]"))
+        )
+        fba_menu.click()
         time.sleep(3)
 
-        # ページのタイトルとURLを確認
-        print(f"ページタイトル: {driver.title}")
-        print(f"現在のURL: {driver.current_url}")
-
-        # ページ内に「Japan」が含まれているか確認
-        page_source = driver.page_source
-        if 'Japan' in page_source:
-            print("✓ ページに'Japan'が含まれています")
-        else:
-            print("✗ ページに'Japan'が含まれていません")
-            print(f"ページソース最初の500文字: {page_source[:500]}")
-
-        # Japanボタンを見つけるため、JavaScriptで調査
-        japan_elements = driver.execute_script("""
-        return Array.from(document.querySelectorAll('button, div[role="button"], select, [class*="dropdown"]'))
-            .filter(el => el.textContent.includes('Japan'))
-            .map(el => ({tag: el.tagName, text: el.textContent.substring(0, 30), class: el.className}));
-        """)
-        print(f"見つかったJapan要素: {japan_elements}")
-
-        # Japanボタンをクリック
+        # Japan ドロップダウンをクリック
         japan_button = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Japan')]"))
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Japan')]"))
         )
         japan_button.click()
         time.sleep(2)
 
         # 店舗を選択
         store_link = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, f"//text()[contains(., '{store_name}')]"))
+            EC.element_to_be_clickable((By.XPATH, f"//*[contains(text(), '{store_name}')]"))
         )
         store_link.click()
         time.sleep(3)
 
         # エクスポートボタン（ダウンロードアイコン）をクリック
         export_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//button[.//svg][@title='ダウンロード'] | //button[.//svg][contains(@class, 'download')]"))
+            EC.element_to_be_clickable((By.XPATH, "//button[.//svg[@class or @data-testid]][contains(@title, 'download') or contains(@class, 'export')]"))
         )
         export_button.click()
         print(f"✅ {store_name} のエクスポートリクエスト完了")
@@ -155,7 +126,7 @@ def download_csv_files(driver):
     try:
         # ダウンロードセンターアイコン（左下のダウンロードアイコン）をクリック
         download_center = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//svg[contains(@class, 'feather-download')]/parent::*"))
+            EC.element_to_be_clickable((By.XPATH, "//svg[contains(@class, 'feather-download')]/parent::button | //svg[contains(@class, 'feather-download')]/parent::div"))
         )
         download_center.click()
         time.sleep(3)
