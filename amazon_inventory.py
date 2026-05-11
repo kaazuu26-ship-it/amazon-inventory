@@ -59,18 +59,20 @@ def login_tool4seller():
         time.sleep(3)
 
         email_field = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//input[@type='email']"))
+            EC.presence_of_element_located((By.ID, "login-email"))
         )
         email_field.clear()
         email_field.send_keys(TOOL4SELLER_EMAIL)
         time.sleep(1)
 
-        password_field = driver.find_element(By.XPATH, "//input[@type='password']")
+        password_field = driver.find_element(By.ID, "login-password")
         password_field.clear()
         password_field.send_keys(TOOL4SELLER_PASSWORD)
         time.sleep(1)
 
-        submit_button = driver.find_element(By.XPATH, "//button[@type='submit']")
+        submit_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@type='submit' and contains(text(), 'ログイン')]"))
+        )
         submit_button.click()
 
         time.sleep(5)
