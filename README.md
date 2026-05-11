@@ -50,13 +50,32 @@ On first run, the script will prompt you to authorize the application via browse
 python amazon_inventory.py
 ```
 
-## Scheduling with Claude Code
+## Automated Scheduling
 
-To schedule daily execution at 9 AM Japan time using Claude Code:
+### Option 1: GitHub Actions (推奨)
+
+Daily execution at 9 AM JST using GitHub Actions:
+
+1. Go to your repository Settings → Secrets and variables → Actions
+2. Create the following secrets:
+   - `SELLER_CENTRAL_EMAIL`: Your Amazon Seller Central email
+   - `SELLER_CENTRAL_PASSWORD`: Your Seller Central password
+   - `GOOGLE_SHEETS_ID`: Your Google Sheets ID
+   - `CHATWORK_API_KEY`: Your Chatwork API key
+   - `CHATWORK_ROOM_ID`: Your Chatwork room ID
+   - `GOOGLE_CREDENTIALS_JSON`: Your credentials.json content (full JSON as a string)
+
+3. The workflow in `.github/workflows/daily-inventory.yml` will run automatically every day at 9 AM JST
+
+### Option 2: Claude Code Remote Agent
+
+To schedule using Claude Code remote agent:
 
 ```
 /schedule daily-amazon-inventory 9am Asia/Tokyo "python amazon_inventory.py"
 ```
+
+(Requires same secrets setup as GitHub Actions)
 
 ## Notes
 
@@ -64,3 +83,4 @@ To schedule daily execution at 9 AM Japan time using Claude Code:
 - Google OAuth token is cached in `token.json` for subsequent runs
 - Never commit `.env` or `credentials.json` files (they're in `.gitignore`)
 - Chatwork notifications show job status and item count updated
+- For GitHub Actions: Secrets are encrypted and never exposed in logs

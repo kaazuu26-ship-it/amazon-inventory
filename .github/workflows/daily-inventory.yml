@@ -1,0 +1,48 @@
+name: Daily Amazon Inventory Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 毎日 00:00 UTC (9:00 AM JST)
+  workflow_dispatch:  # 手動実行も可能
+
+jobs:
+  sync-inventory:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          SELLER_CENTRAL_EMAIL=${{ secrets.SELLER_CENTRAL_EMAIL }}
+          SELLER_CENTRAL_PASSWORD=${{ secrets.SELLER_CENTRAL_PASSWORD }}
+          GOOGLE_SHEETS_ID=${{ secrets.GOOGLE_SHEETS_ID }}
+          CHATWORK_API_KEY=${{ secrets.CHATWORK_API_KEY }}
+          CHATWORK_ROOM_ID=${{ secrets.CHATWORK_ROOM_ID }}
+          EOF
+
+      - name: Create credentials.json
+        run: |
+          cat > credentials.json << 'EOF'
+          ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          EOF
+
+      - name: Run inventory sync
+        run: python amazon_inventory.py
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: execution-logs
+          path: .
