@@ -83,11 +83,23 @@ def export_store_data(driver, store_name):
     print(f"📤 {store_name} のデータをエクスポート中...")
 
     try:
-        time.sleep(2)
+        time.sleep(3)
+
+        # ページのタイトルとURLを確認
+        print(f"ページタイトル: {driver.title}")
+        print(f"現在のURL: {driver.current_url}")
+
+        # ページ内に「Japan」が含まれているか確認
+        page_source = driver.page_source
+        if 'Japan' in page_source:
+            print("✓ ページに'Japan'が含まれています")
+        else:
+            print("✗ ページに'Japan'が含まれていません")
+            print(f"ページソース最初の500文字: {page_source[:500]}")
 
         # Japanボタンを見つけるため、JavaScriptで調査
         japan_elements = driver.execute_script("""
-        return Array.from(document.querySelectorAll('button, div[role="button"], select'))
+        return Array.from(document.querySelectorAll('button, div[role="button"], select, [class*="dropdown"]'))
             .filter(el => el.textContent.includes('Japan'))
             .map(el => ({tag: el.tagName, text: el.textContent.substring(0, 30), class: el.className}));
         """)
