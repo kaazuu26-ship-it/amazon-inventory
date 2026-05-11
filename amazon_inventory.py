@@ -1,13 +1,10 @@
 import os
 import sys
+import csv
 import time
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
-
-# UTF-8 エンコーディング設定
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -19,18 +16,20 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 load_dotenv(override=False)
 
-SELLER_EMAIL = os.getenv('SELLER_CENTRAL_EMAIL')
-SELLER_PASSWORD = os.getenv('SELLER_CENTRAL_PASSWORD')
+TOOL4SELLER_EMAIL = os.getenv('SELLER_CENTRAL_EMAIL')
+TOOL4SELLER_PASSWORD = os.getenv('SELLER_CENTRAL_PASSWORD')
 GOOGLE_SHEETS_ID = os.getenv('GOOGLE_SHEETS_ID')
 CHATWORK_API_KEY = os.getenv('CHATWORK_API_KEY')
 CHATWORK_ROOM_ID = os.getenv('CHATWORK_ROOM_ID')
 
-# 必要な環境変数をチェック
 required_vars = {
-    'SELLER_CENTRAL_EMAIL': SELLER_EMAIL,
-    'SELLER_CENTRAL_PASSWORD': SELLER_PASSWORD,
+    'SELLER_CENTRAL_EMAIL': TOOL4SELLER_EMAIL,
+    'SELLER_CENTRAL_PASSWORD': TOOL4SELLER_PASSWORD,
     'GOOGLE_SHEETS_ID': GOOGLE_SHEETS_ID,
     'CHATWORK_API_KEY': CHATWORK_API_KEY,
     'CHATWORK_ROOM_ID': CHATWORK_ROOM_ID,
@@ -43,9 +42,9 @@ if missing_vars:
     print("☁️  リモート実行: 環境変数を設定してください")
     exit(1)
 
-def login_seller_central():
-    """Seller Central にログイン"""
-    print("🔓 Seller Central ログイン中...")
+def login_tool4seller():
+    """Tool4Seller にログイン"""
+    print("🔓 Tool4Seller ログイン中...")
 
     service = Service(ChromeDriverManager().install())
     options = webdriver.ChromeOptions()
@@ -54,21 +53,27 @@ def login_seller_central():
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-gpu')
     driver = webdriver.Chrome(service=service, options=options)
-    driver.get('https://sellercentral.amazon.co.jp/')
 
     try:
-        email_field = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "ap_email"))
-        )
-        email_field.send_keys(SELLER_EMAIL)
-
-        password_field = driver.find_element(By.ID, "ap_password")
-        password_field.send_keys(SELLER_PASSWORD)
-
-        login_button = driver.find_element(By.ID, "signInSubmit")
-        login_button.click()
-
+        driver.get('https://data.tool4seller.com/sales_analysis/stock?currentTab=0')
         time.sleep(3)
+
+        email_field = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//input[@type='email']"))
+        )
+        email_field.clear()
+        email_field.send_keys(TOOL4SELLER_EMAIL)
+        time.sleep(1)
+
+        password_field = driver.find_element(By.XPATH, "//input[@type='password']")
+        password_field.clear()
+        password_field.send_keys(TOOL4SELLER_PASSWORD)
+        time.sleep(1)
+
+        submit_button = driver.find_element(By.XPATH, "//button[@type='submit']")
+        submit_button.click()
+
+        time.sleep(5)
         print("✅ ログイン成功")
         return driver
     except Exception as e:
@@ -76,32 +81,30 @@ def login_seller_central():
         driver.quit()
         return None
 
-def download_inventory_report(driver):
-    """在庫レポートをダウンロード"""
-    print("📥 在庫レポート取得中...")
+def download_csv_from_tool4seller(driver, download_dir):
+    """Tool4Seller から在庫 CSV をダウンロード"""
+    print("📥 在庫データ取得中...")
 
     try:
-        driver.get('https://sellercentral.amazon.co.jp/reports/report.html?report_type=FBA_INVENTORY_PLANNING_REPORT')
-        time.sleep(2)
-
         download_button = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'ダウンロード')]"))
+            EC.presence_of_element_located((By.XPATH, "//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'download')] | //a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'csv')]"))
         )
         download_button.click()
 
         time.sleep(3)
-        print("✅ レポート取得成功")
+        print("✅ データ取得成功")
         return True
     except Exception as e:
-        print(f"❌ レポート取得失敗: {e}")
+        print(f"❌ データ取得失敗: {e}")
         return False
 
 def get_latest_csv(download_dir):
     """最新のダウンロードファイルを取得"""
-    files = [f for f in os.listdir(download_dir) if f.endswith('.csv')]
+    import glob
+    files = glob.glob(os.path.join(download_dir, '*.csv'))
     if files:
-        latest_file = max(files, key=lambda x: os.path.getctime(os.path.join(download_dir, x)))
-        return os.path.join(download_dir, latest_file)
+        latest_file = max(files, key=os.path.getctime)
+        return latest_file
     return None
 
 def update_google_sheets(inventory_data):
@@ -132,9 +135,9 @@ def update_google_sheets(inventory_data):
 
         for idx, item in enumerate(inventory_data[:20], start=2):
             values = [[
-                item.get('SKU', ''),
+                item.get('SKU', '') or item.get('商品', '') or item.get('Variation Code', ''),
                 item.get('ASIN', ''),
-                item.get('在庫', ''),
+                item.get('在庫', '') or item.get('FBA在庫', '') or item.get('在库', ''),
                 updated_at
             ]]
 
@@ -169,21 +172,20 @@ def main():
 
     updated_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    driver = login_seller_central()
+    driver = login_tool4seller()
 
     if not driver:
-        notify_chatwork(f"❌ Seller Central ログイン失敗 ({updated_at})")
+        notify_chatwork(f"❌ Tool4Seller ログイン失敗 ({updated_at})")
         return
 
     try:
-        download_inventory_report(driver)
+        download_csv_from_tool4seller(driver, os.path.expanduser('~\\Downloads'))
 
         download_dir = os.path.expanduser('~\\Downloads')
         csv_file = get_latest_csv(download_dir)
 
         if csv_file:
             inventory_data = []
-            import csv
             with open(csv_file, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
