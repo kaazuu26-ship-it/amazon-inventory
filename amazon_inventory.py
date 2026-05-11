@@ -54,7 +54,7 @@ def login_tool4seller():
     driver = webdriver.Chrome(service=service, options=options)
 
     try:
-        driver.get('https://data.tool4seller.com/sales_analysis/stock?currentTab=0')
+        driver.get('https://data.tool4seller.com/productManage/fbaInventoryList')
         time.sleep(3)
 
         email_field = WebDriverWait(driver, 10).until(
@@ -83,13 +83,6 @@ def export_store_data(driver, store_name):
     print(f"📤 {store_name} のデータをエクスポート中...")
 
     try:
-        # FBA在庫管理をクリック（左サイドバー）
-        fba_menu = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'FBA在庫管理')]"))
-        )
-        fba_menu.click()
-        time.sleep(2)
-
         # Japan ドロップダウンをクリック
         japan_button = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//button[contains(text(), 'Japan')]"))
