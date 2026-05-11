@@ -84,9 +84,12 @@ def export_store_data(driver, store_name):
     print(f"📤 {store_name} のデータをエクスポート中...")
 
     try:
+        # ページ読み込み完了を待つ
+        time.sleep(5)
+
         # FBA在庫管理をクリック（左サイドバー）
-        fba_menu = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, "//li[.//text()[contains(., 'FBA在庫管理')]] | //a[contains(text(), 'FBA在庫管理')]"))
+        fba_menu = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, "//*[contains(., 'FBA在庫管理')]"))
         )
         fba_menu.click()
         time.sleep(3)
